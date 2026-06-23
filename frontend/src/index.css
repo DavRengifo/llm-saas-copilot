@@ -1,0 +1,54 @@
+/* ── Design tokens ── */
+:root {
+  --indigo:       #6366f1;
+  --indigo-dark:  #4f46e5;
+  --indigo-light: #e0e7ff;
+  --emerald:      #10b981;
+  --emerald-light:#d1fae5;
+  --amber:        #f59e0b;
+  --amber-light:  #fef3c7;
+  --rose:         #f43f5e;
+  --rose-light:   #ffe4e6;
+
+  --text-primary:   #1e293b;
+  --text-secondary: #64748b;
+  --text-muted:     #94a3b8;
+  --bg-page:        #f1f5f9;
+  --bg-card:        #ffffff;
+  --border:         #e2e8f0;
+  --border-focus:   #a5b4fc;
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --shadow:    0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -2px rgba(0,0,0,.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.07), 0 4px 6px -4px rgba(0,0,0,.05);
+
+  --radius-sm: 6px;
+  --radius:    10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
+h1, h2, h3, h4 { margin: 0; line-height: 1.25; }
+p { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+button { font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}

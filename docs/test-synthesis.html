@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Copilot — Test Suite Synthesis</title>
+<style>
+  :root {
+    --indigo: #6366f1;
+    --indigo-light: #e0e7ff;
+    --emerald: #10b981;
+    --emerald-light: #d1fae5;
+    --rose: #f43f5e;
+    --rose-light: #ffe4e6;
+    --amber: #f59e0b;
+    --amber-light: #fef3c7;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-400: #94a3b8;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-900: #0f172a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--slate-700);
+    background: #fff;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 40px;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    border-left: 5px solid var(--indigo);
+    padding: 32px 0 32px 32px;
+    margin-bottom: 48px;
+  }
+  .cover-tag {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--indigo);
+    margin-bottom: 12px;
+  }
+  .cover h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--slate-900);
+    letter-spacing: -.02em;
+    margin-bottom: 8px;
+  }
+  .cover-sub {
+    font-size: 15px;
+    color: var(--slate-600);
+  }
+  .cover-meta {
+    margin-top: 20px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 99px;
+    border: 1px solid var(--slate-200);
+    color: var(--slate-600);
+  }
+
+  /* ── Summary cards ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .summary-card {
+    background: var(--slate-50);
+    border: 1px solid var(--slate-200);
+    border-radius: 10px;
+    padding: 18px;
+    text-align: center;
+  }
+  .summary-card .number {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--indigo);
+    display: block;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .summary-card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-weight: 600;
+    color: var(--slate-400);
+  }
+
+  /* ── Sections ── */
+  h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--slate-900);
+    margin-bottom: 6px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--slate-200);
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--slate-400);
+    margin: 28px 0 12px;
+  }
+  .section { margin-bottom: 48px; }
+
+  /* ── Context box ── */
+  .context-box {
+    background: var(--indigo-light);
+    border-left: 4px solid var(--indigo);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: #3730a3;
+    line-height: 1.6;
+  }
+  .context-box strong { font-weight: 700; }
+
+  /* ── Tool badge ── */
+  .tool-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .tool-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    border: 1.5px solid;
+  }
+  .tool-badge.py  { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
+  .tool-badge.ts  { background: #dbeafe; border-color: #60a5fa; color: #1e40af; }
+  .tool-badge.mock { background: var(--indigo-light); border-color: var(--indigo); color: #3730a3; }
+
+  /* ── Test table ── */
+  .test-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .test-table thead tr {
+    background: var(--slate-100);
+  }
+  .test-table th {
+    text-align: left;
+    padding: 9px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--slate-600);
+  }
+  .test-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--slate-200);
+    vertical-align: top;
+  }
+  .test-table tr:last-child td { border-bottom: none; }
+  .test-table tr:hover td { background: var(--slate-50); }
+
+  .test-num {
+    font-weight: 700;
+    color: var(--slate-400);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .test-name {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--slate-900);
+    font-weight: 600;
+  }
+  .test-desc { color: var(--slate-600); }
+  .pass-badge {
+    display: inline-block;
+    width: 56px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 0;
+    border-radius: 99px;
+    background: var(--emerald-light);
+    color: #065f46;
+  }
+
+  /* ── File header ── */
+  .file-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--slate-900);
+    color: #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .file-count {
+    font-size: 11px;
+    background: var(--indigo);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 99px;
+  }
+  .file-block {
+    border: 1px solid var(--slate-200);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  /* ── Why box ── */
+  .why-box {
+    background: var(--slate-50);
+    border: 1px solid var(--slate-200);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--slate-600);
+    margin-top: 8px;
+  }
+  .why-box strong { color: var(--slate-700); }
+
+  /* ── Gap table ── */
+  .gap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .gap-table th {
+    text-align: left; padding: 8px 12px;
+    background: var(--slate-100);
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing:.05em;
+    color: var(--slate-600);
+  }
+  .gap-table td { padding: 8px 12px; border-bottom: 1px solid var(--slate-200); vertical-align: top; }
+  .gap-table tr:last-child td { border-bottom: none; }
+  .priority-high { color: var(--rose); font-weight: 700; font-size: 11px; }
+  .priority-med  { color: var(--amber); font-weight: 700; font-size: 11px; }
+  .priority-low  { color: var(--slate-400); font-weight: 700; font-size: 11px; }
+
+  /* ── Footer ── */
+  .doc-footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--slate-200);
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--slate-400);
+  }
+
+  /* ── Print ── */
+  @media print {
+    body { padding: 24px 32px; font-size: 13px; }
+    .summary-grid { grid-template-columns: repeat(4,1fr); }
+    h2 { page-break-before: auto; }
+    .section { page-break-inside: avoid; }
+    .file-block { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <p class="cover-tag">LLM Copilot — Internal Documentation</p>
+  <h1>Test Suite Synthesis</h1>
+  <p class="cover-sub">Complete documentation of backend and frontend automated tests — what is tested, why, and what remains to cover.</p>
+  <div class="cover-meta">
+    <span class="meta-chip">📅 June 2026</span>
+    <span class="meta-chip">🔢 46 tests total</span>
+    <span class="meta-chip">✅ 46 / 46 passing</span>
+    <span class="meta-chip">🐍 Backend: pytest</span>
+    <span class="meta-chip">⚛️ Frontend: Vitest + RTL</span>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="summary-grid">
+  <div class="summary-card">
+    <span class="number">46</span>
+    <span class="label">Total tests</span>
+  </div>
+  <div class="summary-card">
+    <span class="number">20</span>
+    <span class="label">Backend (pytest)</span>
+  </div>
+  <div class="summary-card">
+    <span class="number">26</span>
+    <span class="label">Frontend (Vitest)</span>
+  </div>
+  <div class="summary-card">
+    <span class="number">100%</span>
+    <span class="label">Pass rate</span>
+  </div>
+</div>
+
+<!-- ═══════════════ BACKEND ═══════════════ -->
+<div class="section">
+  <h2>Backend Tests — 20 tests</h2>
+
+  <div class="context-box">
+    <strong>Framework:</strong> pytest + FastAPI TestClient (httpx) &nbsp;|&nbsp;
+    <strong>LLM isolation:</strong> <code>unittest.mock.patch</code> remplace le client OpenAI — aucun appel réseau réel n'est effectué &nbsp;|&nbsp;
+    <strong>Fixtures partagées:</strong> <code>client</code> (app FastAPI en mode test) · <code>auth_headers</code> (<code>X-API-Key: test-secret</code>)
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-badge py">Python 3.10+</span>
+    <span class="tool-badge py">pytest 8.3</span>
+    <span class="tool-badge mock">unittest.mock</span>
+    <span class="tool-badge mock">FastAPI TestClient</span>
+  </div>
+
+  <h3>test_health.py — 2 tests</h3>
+  <div class="file-header">
+    <span>backend/tests/test_health.py</span>
+    <span class="file-count">2 tests</span>
+  </div>
+  <div class="file-block">
+    <table class="test-table">
+      <thead><tr><th>#</th><th>Nom du test</th><th>Ce qui est vérifié</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="test-num">01</td>
+          <td class="test-name">test_health_returns_ok</td>
+          <td class="test-desc"><code>GET /health</code> → code 200, présence des champs <code>status</code>, <code>version</code>, <code>model</code></td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">02</td>
+          <td class="test-name">test_health_requires_no_auth</td>
+          <td class="test-desc">L'endpoint est public : accessible <strong>sans</strong> header <code>X-API-Key</code></td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="why-box"><strong>Pourquoi ces tests :</strong> <code>/health</code> est la route appelée par les outils de monitoring externe (Uptime Robot, Railway, Vercel). Elle doit répondre 200 même si l'IA est indisponible. Si ce test échoue, l'infrastructure considère le service comme mort.</div>
+
+  <h3>test_auth.py — 3 tests</h3>
+  <div class="file-header">
+    <span>backend/tests/test_auth.py</span>
+    <span class="file-count">3 tests</span>
+  </div>
+  <div class="file-block">
+    <table class="test-table">
+      <thead><tr><th>#</th><th>Nom du test</th><th>Ce qui est vérifié</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="test-num">03</td>
+          <td class="test-name">test_missing_api_key_returns_422</td>
+          <td class="test-desc">Requête sans header <code>X-API-Key</code> → <strong>422</strong> Unprocessable Entity</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">04</td>
+          <td class="test-name">test_wrong_api_key_returns_401</td>
+          <td class="test-desc">Header <code>X-API-Key: wrong-key</code> → <strong>401</strong> Unauthorized</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">05</td>
+          <td class="test-name">test_valid_api_key_is_accepted</td>
+          <td class="test-desc">Bonne clé + LLM mocké → <strong>200</strong> OK avec résultat valide</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="why-box"><strong>Pourquoi ces tests :</strong> Ces 3 cas couvrent exhaustivement la porte d'entrée de l'API. Un 4ème cas (clé valide mais LLM en erreur) est couvert dans test_analyze.py.</div>
+
+  <h3>test_analyze.py — 15 tests</h3>
+  <div class="file-header">
+    <span>backend/tests/test_analyze.py</span>
+    <span class="file-count">15 tests</span>
+  </div>
+  <div class="file-block">
+    <table class="test-table">
+      <thead><tr><th>#</th><th>Nom du test</th><th>Ce qui est vérifié</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr><td class="test-num" colspan="4" style="background:#f8fafc;color:#6366f1;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em">POST /analyze/feedback</td></tr>
+        <tr>
+          <td class="test-num">06</td>
+          <td class="test-name">test_feedback_success</td>
+          <td class="test-desc">200, <code>sentiment == "negative"</code>, thème présent, <code>executive_summary</code> dans la réponse</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">07</td>
+          <td class="test-name">test_feedback_defaults_to_english</td>
+          <td class="test-desc">Requête sans champ <code>language</code> → 200 (défaut <code>"en"</code> appliqué par Pydantic)</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">08</td>
+          <td class="test-name">test_feedback_accepts_valid_languages[en]</td>
+          <td class="test-desc">Test paramétré — <code>language: "en"</code> → 200</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">09</td>
+          <td class="test-name">test_feedback_accepts_valid_languages[fr]</td>
+          <td class="test-desc">Test paramétré — <code>language: "fr"</code> → 200</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">10</td>
+          <td class="test-name">test_feedback_accepts_valid_languages[es]</td>
+          <td class="test-desc">Test paramétré — <code>language: "es"</code> → 200</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">11</td>
+          <td class="test-name">test_feedback_rejects_invalid_language</td>
+          <td class="test-desc"><code>language: "de"</code> (allemand) → 422 refusé par Pydantic</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">12</td>
+          <td class="test-name">test_feedback_invalid_llm_json_returns_422</td>
+          <td class="test-desc">LLM mocké retourne <code>"not json at all"</code> → 422 avec message d'erreur explicite</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr><td class="test-num" colspan="4" style="background:#f8fafc;color:#6366f1;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em">POST /analyze/document</td></tr>
+        <tr>
+          <td class="test-num">13</td>
+          <td class="test-name">test_document_success</td>
+          <td class="test-desc">200, présence des 4 champs : <code>key_points</code>, <code>decisions</code>, <code>actions</code>, <code>summary</code></td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">14</td>
+          <td class="test-name">test_document_accepts_bullets_format</td>
+          <td class="test-desc"><code>output_format: "bullets"</code> accepté → 200</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">15</td>
+          <td class="test-name">test_document_rejects_invalid_format</td>
+          <td class="test-desc"><code>output_format: "markdown"</code> non autorisé → 422</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr><td class="test-num" colspan="4" style="background:#f8fafc;color:#6366f1;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em">POST /analyze/extract</td></tr>
+        <tr>
+          <td class="test-num">16</td>
+          <td class="test-name">test_extract_success</td>
+          <td class="test-desc">200, <code>extracted_data</code> présent, clés <code>dates</code> et <code>amounts</code> dans la réponse</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">17</td>
+          <td class="test-name">test_extract_filters_to_requested_fields</td>
+          <td class="test-desc">Si on demande uniquement <code>amounts</code>, la clé <code>names</code> est absente de la réponse</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">18</td>
+          <td class="test-name">test_extract_rejects_invalid_field</td>
+          <td class="test-desc"><code>extract_fields: ["emails"]</code> → 422 (<code>emails</code> n'est pas une valeur autorisée)</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">19</td>
+          <td class="test-name">test_extract_requires_at_least_one_field</td>
+          <td class="test-desc"><code>extract_fields: []</code> → 422 (contrainte <code>min_length=1</code> Pydantic)</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">20</td>
+          <td class="test-name">test_feedback_llm_schema_mismatch_returns_422</td>
+          <td class="test-desc">LLM retourne JSON valide mais <code>"themes": "string"</code> au lieu d'un array → Pydantic refuse → 422 (edge case production réel)</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="why-box"><strong>Pattern de mock LLM :</strong> <code>unittest.mock.patch</code> intercepte <code>services.llm_service.client.chat.completions.create</code> et retourne un objet Python factice avec le JSON attendu. Aucun crédit OpenAI n'est consommé pendant les tests.</div>
+</div>
+
+<!-- ═══════════════ FRONTEND ═══════════════ -->
+<div class="section">
+  <h2>Frontend Tests — 26 tests</h2>
+
+  <div class="context-box">
+    <strong>Framework:</strong> Vitest 3 + @testing-library/react + @testing-library/user-event &nbsp;|&nbsp;
+    <strong>Isolation réseau:</strong> <code>vi.stubGlobal('fetch', vi.fn())</code> — aucun appel API réel &nbsp;|&nbsp;
+    <strong>Philosophie:</strong> interactions via labels/rôles ARIA comme un vrai utilisateur, jamais via classes CSS ou IDs
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-badge ts">TypeScript 6</span>
+    <span class="tool-badge ts">React 19</span>
+    <span class="tool-badge ts">Vitest 3</span>
+    <span class="tool-badge mock">Testing Library</span>
+    <span class="tool-badge mock">vi.stubGlobal fetch</span>
+  </div>
+
+  <h3>App.test.tsx — 5 tests</h3>
+  <div class="file-header">
+    <span>frontend/src/test/App.test.tsx</span>
+    <span class="file-count">5 tests</span>
+  </div>
+  <div class="file-block">
+    <table class="test-table">
+      <thead><tr><th>#</th><th>Nom du test</th><th>Ce qui est vérifié</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="test-num">20</td>
+          <td class="test-name">renders the header title</td>
+          <td class="test-desc">Le texte <code>"LLM Copilot"</code> est présent dans le DOM</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">21</td>
+          <td class="test-name">renders all three tabs</td>
+          <td class="test-desc">Les 3 onglets ont bien le rôle ARIA <code>tab</code> avec les bons labels</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">22</td>
+          <td class="test-name">shows feedback analyzer by default</td>
+          <td class="test-desc">Au chargement, l'onglet Feedback est actif (textarea <code>Customer verbatims</code> visible)</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">23</td>
+          <td class="test-name">switches to document analyzer tab</td>
+          <td class="test-desc">Clic sur "Document summary" → textarea <code>Document / meeting notes</code> apparaît</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">24</td>
+          <td class="test-name">switches to extract analyzer tab</td>
+          <td class="test-desc">Clic sur "Entity extraction" → textarea <code>Text to extract from</code> apparaît</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>FeedbackAnalyzer.test.tsx — 7 tests</h3>
+  <div class="file-header">
+    <span>frontend/src/test/FeedbackAnalyzer.test.tsx</span>
+    <span class="file-count">7 tests</span>
+  </div>
+  <div class="file-block">
+    <table class="test-table">
+      <thead><tr><th>#</th><th>Nom du test</th><th>Ce qui est vérifié</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="test-num">25</td>
+          <td class="test-name">renders the textarea and submit button</td>
+          <td class="test-desc">Textarea et bouton "Analyze feedback" présents dans le DOM</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">26</td>
+          <td class="test-name">disables submit when textarea is empty</td>
+          <td class="test-desc">Bouton désactivé si textarea vide — prévient les soumissions accidentelles</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">27</td>
+          <td class="test-name">enables submit when text is entered</td>
+          <td class="test-desc">Après saisie de texte, le bouton devient actif</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">28</td>
+          <td class="test-name">shows result on successful API response</td>
+          <td class="test-desc">Fetch mocké (ok: true) → thème et résumé s'affichent dans le DOM</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">29</td>
+          <td class="test-name">shows error message on API failure</td>
+          <td class="test-desc">Fetch mocké (ok: false) → message d'erreur <code>"Invalid API key"</code> s'affiche</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">30</td>
+          <td class="test-name">has a language selector with en/fr/es options</td>
+          <td class="test-desc">Select langue présent, 3 options (English, Français, Español) accessibles</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">31</td>
+          <td class="test-name">shows error when fetch throws (network failure)</td>
+          <td class="test-desc"><code>fetch</code> rejette avec <code>Error("Failed to fetch")</code> (réseau coupé) → banner d'erreur affiché avec rôle <code>alert</code></td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>DocumentAnalyzer.test.tsx — 8 tests</h3>
+  <div class="file-header">
+    <span>frontend/src/test/DocumentAnalyzer.test.tsx</span>
+    <span class="file-count">8 tests</span>
+  </div>
+  <div class="file-block">
+    <table class="test-table">
+      <thead><tr><th>#</th><th>Nom du test</th><th>Ce qui est vérifié</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="test-num">31</td>
+          <td class="test-name">renders the textarea and submit button</td>
+          <td class="test-desc">Textarea "Document / meeting notes" et bouton "Summarize" présents</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">32</td>
+          <td class="test-name">disables submit when textarea is empty</td>
+          <td class="test-desc">Bouton désactivé sans texte</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">33</td>
+          <td class="test-name">enables submit when text is entered</td>
+          <td class="test-desc">Bouton actif après saisie</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">34</td>
+          <td class="test-name">shows result on successful API response</td>
+          <td class="test-desc">Fetch mocké → key points, decisions, actions et summary s'affichent</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">35</td>
+          <td class="test-name">shows error message on API failure</td>
+          <td class="test-desc">Fetch mocké (erreur) → message d'erreur affiché</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">36</td>
+          <td class="test-name">has an output format selector</td>
+          <td class="test-desc">Select "Output style" présent, options "Structured prose" et "Short bullets"</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">37</td>
+          <td class="test-name">has a language selector with en/fr/es options</td>
+          <td class="test-desc">Select langue présent, 3 options accessibles</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">38</td>
+          <td class="test-name">shows error when fetch throws (network failure)</td>
+          <td class="test-desc"><code>fetch</code> rejette avec <code>Error("Failed to fetch")</code> → banner d'erreur affiché avec rôle <code>alert</code></td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>ExtractAnalyzer.test.tsx — 6 tests</h3>
+  <div class="file-header">
+    <span>frontend/src/test/ExtractAnalyzer.test.tsx</span>
+    <span class="file-count">6 tests</span>
+  </div>
+  <div class="file-block">
+    <table class="test-table">
+      <thead><tr><th>#</th><th>Nom du test</th><th>Ce qui est vérifié</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="test-num">38</td>
+          <td class="test-name">renders all three field checkboxes checked by default</td>
+          <td class="test-desc">3 cases (dates, names, amounts) présentes et <strong>cochées par défaut</strong></td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">39</td>
+          <td class="test-name">disables submit when no text is entered</td>
+          <td class="test-desc">Bouton "Extract" désactivé sans texte</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">40</td>
+          <td class="test-name">shows extracted results on success</td>
+          <td class="test-desc">Fetch mocké → chips "March 3rd" et "Alice" s'affichent</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">41</td>
+          <td class="test-name">has a language selector with en/fr/es options</td>
+          <td class="test-desc">Select langue présent, 3 options accessibles</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">42</td>
+          <td class="test-name">disables submit when all checkboxes are unchecked</td>
+          <td class="test-desc">Décocher les 3 cases → bouton désactivé même avec texte (garde UX)</td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="test-num">43</td>
+          <td class="test-name">shows error when fetch throws (network failure)</td>
+          <td class="test-desc"><code>fetch</code> rejette avec <code>Error("Failed to fetch")</code> → banner d'erreur affiché avec rôle <code>alert</code></td>
+          <td><span class="pass-badge">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════ GAPS ═══════════════ -->
+<div class="section">
+  <h2>Ce qui reste à couvrir</h2>
+  <table class="gap-table">
+    <thead><tr><th>Cas non couvert</th><th>Type</th><th>Priorité</th><th>Raison / Quand ajouter</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Spinner visible pendant le chargement</td>
+        <td>Frontend</td>
+        <td class="priority-med">MOYENNE</td>
+        <td>L'état de chargement est fonctionnel mais non vérifié par un test</td>
+      </tr>
+      <tr>
+        <td>CopyButton — copie dans le presse-papier</td>
+        <td>Frontend</td>
+        <td class="priority-med">MOYENNE</td>
+        <td>Nécessite de mocker <code>navigator.clipboard</code></td>
+      </tr>
+      <tr>
+        <td>ApiKeySettings — sauvegarde en localStorage</td>
+        <td>Frontend</td>
+        <td class="priority-med">MOYENNE</td>
+        <td>Comportement de persistance non couvert</td>
+      </tr>
+      <tr>
+        <td>Tests d'accessibilité (contraste, navigation clavier)</td>
+        <td>Frontend</td>
+        <td class="priority-low">BASSE</td>
+        <td>Nécessite <code>jest-axe</code> — pertinent avant mise en production publique</td>
+      </tr>
+      <tr>
+        <td>Tests end-to-end navigateur réel (E2E)</td>
+        <td>Full-stack</td>
+        <td class="priority-low">BASSE</td>
+        <td>Nécessite Playwright ou Cypress — priorité Phase 2</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="doc-footer">
+  <span>LLM Copilot — Test Suite Synthesis · June 2026</span>
+  <span>github.com/DavRengifo/llm-saas-copilot</span>
+</div>
+
+</body>
+</html>

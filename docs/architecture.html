@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Copilot — Technical Architecture</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --indigo: #6366f1;
+    --indigo-dark: #4f46e5;
+    --indigo-light: #e0e7ff;
+    --emerald: #10b981;
+    --emerald-light: #d1fae5;
+    --amber: #f59e0b;
+    --amber-light: #fef3c7;
+    --rose: #f43f5e;
+    --rose-light: #ffe4e6;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-400: #94a3b8;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-900: #0f172a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--slate-700);
+    background: #fff;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 40px;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    border-left: 5px solid var(--indigo);
+    padding: 32px 0 32px 32px;
+    margin-bottom: 48px;
+  }
+  .cover-tag {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--indigo); margin-bottom: 12px;
+  }
+  .cover h1 {
+    font-size: 28px; font-weight: 800; color: var(--slate-900);
+    letter-spacing: -.02em; margin-bottom: 8px;
+  }
+  .cover-sub { font-size: 15px; color: var(--slate-600); }
+  .cover-meta { margin-top: 20px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .meta-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; padding: 4px 12px;
+    border-radius: 99px; border: 1px solid var(--slate-200); color: var(--slate-600);
+  }
+
+  /* ── Sections ── */
+  .section { margin-bottom: 52px; }
+  h2 {
+    font-size: 18px; font-weight: 700; color: var(--slate-900);
+    border-bottom: 2px solid var(--slate-200); padding-bottom: 8px; margin-bottom: 20px;
+  }
+  h3 {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--slate-400); margin: 24px 0 12px;
+  }
+  p { color: var(--slate-600); margin-bottom: 12px; }
+
+  /* ── Diagram container ── */
+  .diagram-box {
+    background: var(--slate-50);
+    border: 1px solid var(--slate-200);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 16px 0 24px;
+    overflow-x: auto;
+  }
+  .diagram-box .mermaid { display: flex; justify-content: center; }
+  .diagram-caption {
+    text-align: center; font-size: 11px; color: var(--slate-400);
+    font-style: italic; margin-top: 8px;
+  }
+
+  /* ── Info box ── */
+  .info-box {
+    background: var(--indigo-light);
+    border-left: 4px solid var(--indigo);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px; margin: 16px 0;
+    font-size: 13px; color: #3730a3; line-height: 1.6;
+  }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+  thead tr { background: var(--slate-100); }
+  th {
+    text-align: left; padding: 9px 14px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--slate-600);
+  }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--slate-200); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--slate-50); }
+  code { font-family: 'Courier New', monospace; font-size: 12px; background: var(--slate-100); padding: 1px 5px; border-radius: 3px; }
+
+  /* ── File tree ── */
+  .file-tree {
+    background: var(--slate-900);
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 24px 28px;
+    font-family: 'Courier New', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    margin: 16px 0;
+  }
+  .ft-dir { color: #93c5fd; font-weight: 700; }
+  .ft-file { color: #d1d5db; }
+  .ft-comment { color: #6b7280; }
+  .ft-highlight { color: #34d399; font-weight: 700; }
+
+  /* ── Stack badge ── */
+  .stack-badge {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 99px; border: 1.5px solid;
+    white-space: nowrap;
+  }
+  .sb-py  { background: #fef9c3; border-color: #fbbf24; color: #78350f; }
+  .sb-ts  { background: #dbeafe; border-color: #60a5fa; color: #1e3a8a; }
+  .sb-ai  { background: #f3e8ff; border-color: #c084fc; color: #581c87; }
+  .sb-infra { background: #dcfce7; border-color: #4ade80; color: #14532d; }
+
+  /* ── Security flow ── */
+  .flow-steps { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+  .flow-step {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--slate-200);
+    background: var(--slate-50);
+  }
+  .flow-step:first-child { border-radius: 8px 8px 0 0; }
+  .flow-step:last-child { border-radius: 0 0 8px 8px; border-top: none; }
+  .flow-step + .flow-step { border-top: none; }
+  .flow-num {
+    width: 26px; height: 26px; flex-shrink: 0;
+    background: var(--indigo); color: white;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; margin-top: 1px;
+  }
+  .flow-num.red { background: var(--rose); }
+  .flow-num.green { background: var(--emerald); }
+  .flow-content h4 { font-size: 13px; font-weight: 700; color: var(--slate-900); margin-bottom: 3px; }
+  .flow-content p { font-size: 12px; color: var(--slate-600); margin: 0; }
+
+  /* ── Footer ── */
+  .doc-footer {
+    margin-top: 64px; padding-top: 20px;
+    border-top: 1px solid var(--slate-200);
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--slate-400);
+  }
+
+  @media print {
+    body { padding: 20px 28px; }
+    .diagram-box { page-break-inside: avoid; }
+    .section { page-break-inside: avoid; }
+    .flow-steps { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#e0e7ff',
+      primaryTextColor: '#1e293b',
+      primaryBorderColor: '#6366f1',
+      lineColor: '#6366f1',
+      secondaryColor: '#f1f5f9',
+      tertiaryColor: '#f8fafc',
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '13px'
+    }
+  });
+</script>
+
+<!-- COVER -->
+<div class="cover">
+  <p class="cover-tag">LLM Copilot — Internal Documentation</p>
+  <h1>Technical Architecture</h1>
+  <p class="cover-sub">Complete documentation of the system architecture, data flows, component structure, and technology decisions.</p>
+  <div class="cover-meta">
+    <span class="meta-chip">📅 June 2026</span>
+    <span class="meta-chip">🐍 FastAPI backend</span>
+    <span class="meta-chip">⚛️ React frontend</span>
+    <span class="meta-chip">🤖 OpenAI GPT</span>
+    <span class="meta-chip">🔐 API Key auth</span>
+  </div>
+</div>
+
+<!-- ═══ 1. OVERVIEW ═══ -->
+<div class="section">
+  <h2>1. System Overview</h2>
+  <p>LLM Copilot est une application web full-stack qui expose trois capacités d'analyse de texte pilotées par un LLM (Large Language Model). Un frontend React communique avec un backend FastAPI qui orchestre les appels vers l'API OpenAI et retourne des réponses JSON typées et validées.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+flowchart LR
+    subgraph CLIENT["🌐 Client (port 5173)"]
+        UI["React 19\nTypeScript\nVite"]
+    end
+    subgraph BACKEND["⚙️ Backend (port 8000)"]
+        AUTH["🔐 Auth\nverify_api_key"]
+        VAL["✅ Pydantic v2\nValidation"]
+        ROUTER["Router\n/analyze/*"]
+        PROMPT["Prompt\nBuilders"]
+        LLM["OpenAI\nClient"]
+    end
+    subgraph EXTERNAL["☁️ External"]
+        OAI["OpenAI API\ngpt-4o-mini"]
+    end
+
+    UI -->|"POST /analyze/*\nX-API-Key header"| AUTH
+    AUTH -->|"401 si invalide"| UI
+    AUTH --> VAL
+    VAL -->|"422 si schéma invalide"| UI
+    VAL --> ROUTER
+    ROUTER --> PROMPT
+    PROMPT --> LLM
+    LLM -->|"chat.completions.create()"| OAI
+    OAI -->|"JSON string"| LLM
+    LLM --> ROUTER
+    ROUTER -->|"200 JSON typé"| UI
+    </div>
+    <p class="diagram-caption">Figure 1 — Architecture globale du système</p>
+  </div>
+</div>
+
+<!-- ═══ 2. REQUEST LIFECYCLE ═══ -->
+<div class="section">
+  <h2>2. Cycle de vie d'une requête</h2>
+  <p>Chaque appel à <code>/analyze/*</code> passe par 6 étapes séquentielles. Une erreur à n'importe quelle étape retourne immédiatement une réponse HTTP appropriée sans aller plus loin.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+sequenceDiagram
+    participant C as Browser
+    participant A as Auth Layer
+    participant V as Pydantic
+    participant P as Prompt Builder
+    participant L as LLM Service
+    participant O as OpenAI API
+
+    C->>A: POST /analyze/feedback + X-API-Key
+    alt Clé manquante
+        A-->>C: 422 Unprocessable
+    else Clé incorrecte
+        A-->>C: 401 Unauthorized
+    else Clé valide
+        A->>V: Valider le body JSON
+        alt Body invalide
+            V-->>C: 422 + détail d'erreur
+        else Body valide
+            V->>P: (text, language)
+            P->>L: SYSTEM_PROMPT + user_message
+            L->>O: chat.completions.create()
+            O-->>L: raw JSON string
+            L->>V: json.loads() + FeedbackResponse(**data)
+            alt JSON invalide
+                V-->>C: 422 LLM returned invalid JSON
+            else Réponse valide
+                V-->>C: 200 FeedbackResponse JSON
+            end
+        end
+    end
+    </div>
+    <p class="diagram-caption">Figure 2 — Cycle de vie complet d'une requête /analyze/feedback</p>
+  </div>
+
+  <div class="info-box">
+    <strong>Pourquoi temperature=0.3 ?</strong> Une température basse rend les sorties du LLM plus déterministes. Pour de l'extraction structurée en JSON, on veut de la cohérence, pas de la créativité. Une temperature=0 serait trop rigide sur des inputs variés ; 0.3 est le bon compromis.
+  </div>
+</div>
+
+<!-- ═══ 3. FILE STRUCTURE ═══ -->
+<div class="section">
+  <h2>3. Structure des fichiers</h2>
+
+  <div class="file-tree">
+<span class="ft-dir">llm-saas-copilot/</span><br>
+├── <span class="ft-dir">backend/</span><br>
+│   ├── <span class="ft-highlight">main.py</span>              <span class="ft-comment"># Point d'entrée FastAPI, CORS, router</span><br>
+│   ├── <span class="ft-dir">routers/</span><br>
+│   │   └── <span class="ft-highlight">analyze.py</span>        <span class="ft-comment"># POST /analyze/{feedback,document,extract}</span><br>
+│   ├── <span class="ft-dir">models/</span><br>
+│   │   └── <span class="ft-highlight">schemas.py</span>        <span class="ft-comment"># Pydantic v2 — Request & Response models</span><br>
+│   ├── <span class="ft-dir">services/</span><br>
+│   │   └── <span class="ft-highlight">llm_service.py</span>    <span class="ft-comment"># Wrapper OpenAI client (call_llm)</span><br>
+│   ├── <span class="ft-dir">prompts/</span><br>
+│   │   ├── <span class="ft-file">feedback_analysis.py</span>  <span class="ft-comment"># Prompt CX analyst</span><br>
+│   │   ├── <span class="ft-file">document_analysis.py</span>  <span class="ft-comment"># Prompt business analyst</span><br>
+│   │   └── <span class="ft-file">extract.py</span>            <span class="ft-comment"># Prompt extraction engine</span><br>
+│   ├── <span class="ft-highlight">dependencies.py</span>           <span class="ft-comment"># verify_api_key FastAPI dependency</span><br>
+│   ├── <span class="ft-dir">tests/</span><br>
+│   │   ├── <span class="ft-file">conftest.py</span>           <span class="ft-comment"># Fixtures partagées (client, auth_headers)</span><br>
+│   │   ├── <span class="ft-file">test_health.py</span>        <span class="ft-comment"># 2 tests</span><br>
+│   │   ├── <span class="ft-file">test_auth.py</span>          <span class="ft-comment"># 3 tests</span><br>
+│   │   └── <span class="ft-file">test_analyze.py</span>       <span class="ft-comment"># 14 tests</span><br>
+│   ├── <span class="ft-file">.env</span>                      <span class="ft-comment"># Variables d'environnement locales</span><br>
+│   └── <span class="ft-file">requirements.txt</span><br>
+│<br>
+├── <span class="ft-dir">frontend/</span><br>
+│   └── <span class="ft-dir">src/</span><br>
+│       ├── <span class="ft-highlight">App.tsx</span>               <span class="ft-comment"># Tabs + layout principal</span><br>
+│       ├── <span class="ft-file">types.ts</span>              <span class="ft-comment"># Interfaces TypeScript (miroir des schemas Pydantic)</span><br>
+│       ├── <span class="ft-dir">api/</span><br>
+│       │   └── <span class="ft-highlight">client.ts</span>         <span class="ft-comment"># fetch wrapper typé — tous les appels API</span><br>
+│       ├── <span class="ft-dir">components/</span><br>
+│       │   ├── <span class="ft-file">FeedbackAnalyzer.tsx</span><br>
+│       │   ├── <span class="ft-file">DocumentAnalyzer.tsx</span><br>
+│       │   ├── <span class="ft-file">ExtractAnalyzer.tsx</span><br>
+│       │   ├── <span class="ft-file">ApiKeySettings.tsx</span><br>
+│       │   ├── <span class="ft-file">Spinner.tsx</span><br>
+│       │   ├── <span class="ft-file">CopyButton.tsx</span><br>
+│       │   └── <span class="ft-file">ResultList.tsx</span><br>
+│       └── <span class="ft-dir">test/</span>                 <span class="ft-comment"># 23 tests Vitest</span><br>
+│<br>
+├── <span class="ft-dir">docs/</span>                         <span class="ft-comment"># Documentation (ce document)</span><br>
+├── <span class="ft-file">README.md</span>                     <span class="ft-comment"># Documentation GitHub</span><br>
+└── <span class="ft-file">PRESENTATION.md</span>               <span class="ft-comment"># Présentation projet</span>
+  </div>
+</div>
+
+<!-- ═══ 4. COMPONENT TREE ═══ -->
+<div class="section">
+  <h2>4. Arborescence des composants React</h2>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+flowchart TD
+    APP["App.tsx\nTabulation + Layout"]
+
+    APP --> HEADER["Header\nlogo + badge"]
+    APP --> NAV["TabNav\nrôles ARIA tab"]
+    APP --> PANEL["TabPanel\nrôle tabpanel"]
+
+    HEADER --> APIKEY["ApiKeySettings\nlocalStorage + show/hide"]
+
+    NAV --> T1["Feedback analysis"]
+    NAV --> T2["Document summary"]
+    NAV --> T3["Entity extraction"]
+
+    PANEL --> FA["FeedbackAnalyzer"]
+    PANEL --> DA["DocumentAnalyzer"]
+    PANEL --> EA["ExtractAnalyzer"]
+
+    FA --> RL1["ResultList\nthemes + issues"]
+    FA --> SP1["Spinner"]
+    FA --> CB1["CopyButton\nsummary"]
+
+    DA --> RL2["ResultList\nkey points + decisions + actions"]
+    DA --> SP2["Spinner"]
+    DA --> CB2["CopyButton\nsummary"]
+
+    EA --> SP3["Spinner"]
+    </div>
+    <p class="diagram-caption">Figure 3 — Arborescence des composants React</p>
+  </div>
+</div>
+
+<!-- ═══ 5. PROMPT ENGINEERING ═══ -->
+<div class="section">
+  <h2>5. Architecture des prompts</h2>
+  <p>Chaque endpoint a son propre module de prompt. Le pattern est identique pour les trois :</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+flowchart LR
+    subgraph PROMPT["prompts/feedback_analysis.py"]
+        SP["SYSTEM_PROMPT\nPersona + JSON schema strict\n+ règles + exemple"]
+        BUM["build_user_message(text, language)\nInstruction langue\n+ texte brut"]
+    end
+
+    SP -->|"role: system"| API["OpenAI\nchat.completions"]
+    BUM -->|"role: user"| API
+    API -->|"raw string"| PARSE["json.loads()\n+ Pydantic validation"]
+    PARSE -->|"typed object"| RESP["HTTP Response\n200 JSON"]
+    </div>
+    <p class="diagram-caption">Figure 4 — Pattern prompt : system + user → parse → validate → respond</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Module prompt</th><th>Persona LLM</th><th>Champs JSON retournés</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>feedback_analysis.py</code></td>
+        <td>Senior CX analyst (10 ans d'expérience)</td>
+        <td><code>themes</code> · <code>sentiment</code> · <code>priority_issues</code> · <code>executive_summary</code></td>
+      </tr>
+      <tr>
+        <td><code>document_analysis.py</code></td>
+        <td>Expert business analyst & technical writer</td>
+        <td><code>key_points</code> · <code>decisions</code> · <code>actions</code> · <code>summary</code></td>
+      </tr>
+      <tr>
+        <td><code>extract.py</code></td>
+        <td>Precise information extraction engine</td>
+        <td><code>extracted_data</code> → <code>dates</code> / <code>names</code> / <code>amounts</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="info-box">
+    <strong>Invariant critique :</strong> chaque system prompt contient la consigne <em>"You MUST respond ONLY with a valid JSON object. No markdown, no code blocks, no text before or after."</em> C'est ce qui rend le parsing fiable. Sans cette contrainte, le LLM enveloppe souvent sa réponse dans des balises <code>```json ... ```</code> qui font échouer <code>json.loads()</code>.
+  </div>
+</div>
+
+<!-- ═══ 6. AUTH ═══ -->
+<div class="section">
+  <h2>6. Modèle d'authentification</h2>
+
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-content">
+        <h4>Client envoie la requête</h4>
+        <p>Header <code>X-API-Key: &lt;valeur&gt;</code> inclus dans chaque POST vers <code>/analyze/*</code>. Côté frontend, la valeur est lue depuis <code>localStorage</code> (ou <code>VITE_API_KEY</code> env).</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-content">
+        <h4>FastAPI Dependency: <code>verify_api_key</code></h4>
+        <p>Déclarée au niveau du router via <code>dependencies=[Depends(verify_api_key)]</code> — s'applique automatiquement à toutes les routes <code>/analyze/*</code> sans modifier chaque route individuellement.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num red">✗</div>
+      <div class="flow-content">
+        <h4>Header absent → 422</h4>
+        <p>FastAPI détecte l'absence du header requis avant même d'appeler la dépendance.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num red">✗</div>
+      <div class="flow-content">
+        <h4>Clé incorrecte → 401</h4>
+        <p>La dépendance compare la valeur reçue avec <code>os.getenv("API_SECRET_KEY")</code>. Si différentes → <code>HTTPException(401)</code>.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num green">✓</div>
+      <div class="flow-content">
+        <h4>Clé valide → requête traitée</h4>
+        <p>La dépendance retourne la clé, FastAPI passe la main à la route handler.</p>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:16px">L'endpoint <code>GET /health</code> est hors du router <code>/analyze</code> et n'est donc <strong>pas</strong> protégé — c'est intentionnel pour les health checks d'infrastructure.</p>
+</div>
+
+<!-- ═══ 7. DATA SCHEMAS ═══ -->
+<div class="section">
+  <h2>7. Schémas de données (Pydantic v2)</h2>
+  <p>Pydantic est utilisé deux fois par requête : pour valider <strong>l'input</strong> du client, et pour valider <strong>l'output</strong> du LLM. Un seul modèle, deux usages.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+classDiagram
+    class FeedbackRequest {
+        +str text
+        +Literal["en","fr","es"] language = "en"
+    }
+    class FeedbackResponse {
+        +list~str~ themes
+        +Literal["positive","negative","mixed"] sentiment
+        +list~str~ priority_issues
+        +str executive_summary
+    }
+    class DocumentRequest {
+        +str text
+        +Literal["structured","bullets"] output_format = "structured"
+        +Literal["en","fr","es"] language = "en"
+    }
+    class DocumentResponse {
+        +list~str~ key_points
+        +list~str~ decisions
+        +list~str~ actions
+        +str summary
+    }
+    class ExtractRequest {
+        +str text
+        +list~Literal["dates","names","amounts"]~ extract_fields
+        +Literal["en","fr","es"] language = "en"
+    }
+    class ExtractResponse {
+        +dict~str,list~str~~ extracted_data
+    }
+    </div>
+    <p class="diagram-caption">Figure 5 — Schémas Pydantic v2 (Request & Response models)</p>
+  </div>
+</div>
+
+<!-- ═══ 8. TECH STACK ═══ -->
+<div class="section">
+  <h2>8. Stack technique</h2>
+
+  <h3>Backend</h3>
+  <table>
+    <thead><tr><th>Couche</th><th>Technologie</th><th>Version</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td>Web framework</td><td><span class="stack-badge sb-py">FastAPI</span></td><td>0.115</td><td>API REST, routing, injection de dépendances, OpenAPI auto</td></tr>
+      <tr><td>Validation</td><td><span class="stack-badge sb-py">Pydantic v2</span></td><td>2.9</td><td>Validation entrée + sortie LLM, schémas typés</td></tr>
+      <tr><td>Serveur ASGI</td><td><span class="stack-badge sb-infra">Uvicorn</span></td><td>0.32</td><td>Serveur HTTP async, hot reload en dev</td></tr>
+      <tr><td>LLM provider</td><td><span class="stack-badge sb-ai">OpenAI SDK</span></td><td>1.51</td><td>Appels au modèle GPT via <code>chat.completions.create</code></td></tr>
+      <tr><td>Env vars</td><td><span class="stack-badge sb-py">python-dotenv</span></td><td>1.0</td><td>Chargement <code>.env</code> en développement</td></tr>
+      <tr><td>Tests</td><td><span class="stack-badge sb-py">pytest + httpx</span></td><td>8.3</td><td>Tests routes, mocking LLM, fixtures partagées</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Frontend</h3>
+  <table>
+    <thead><tr><th>Couche</th><th>Technologie</th><th>Version</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td>UI Framework</td><td><span class="stack-badge sb-ts">React 19</span></td><td>19.2</td><td>Composants, hooks, state local</td></tr>
+      <tr><td>Langage</td><td><span class="stack-badge sb-ts">TypeScript</span></td><td>6.0</td><td>Types partagés entre UI et API, sécurité à la compilation</td></tr>
+      <tr><td>Build tool</td><td><span class="stack-badge sb-infra">Vite</span></td><td>8.0</td><td>HMR ultra-rapide, proxy dev vers backend</td></tr>
+      <tr><td>HTTP</td><td><span class="stack-badge sb-ts">fetch natif</span></td><td>—</td><td>Aucune librairie externe — fetch suffit pour une API simple</td></tr>
+      <tr><td>Tests</td><td><span class="stack-badge sb-ts">Vitest + RTL</span></td><td>3.2</td><td>Tests composants, mocking fetch, interactions utilisateur</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══ 9. DEPLOYMENT ═══ -->
+<div class="section">
+  <h2>9. Architecture de déploiement cible</h2>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+flowchart TB
+    subgraph INTERNET["Internet"]
+        USER["👤 Utilisateur"]
+    end
+
+    subgraph VERCEL["Vercel (Frontend)"]
+        CDN["CDN Global\nReact build statique\nHTTPS automatique"]
+    end
+
+    subgraph HOST["Host Python (Railway / Fly.io / VPS)"]
+        API["FastAPI\nUvicorn\nenv: OPENAI_API_KEY\nenv: API_SECRET_KEY"]
+    end
+
+    subgraph OPENAI["OpenAI"]
+        GPT["GPT model\nAPI payante à l'usage"]
+    end
+
+    USER -->|"HTTPS"| CDN
+    CDN -->|"API calls\nX-API-Key"| API
+    API -->|"OpenAI SDK"| GPT
+    GPT -->|"JSON response"| API
+    API -->|"Typed JSON"| CDN
+    CDN -->|"Rendered UI"| USER
+    </div>
+    <p class="diagram-caption">Figure 6 — Architecture de déploiement en production</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Composant</th><th>Option recommandée</th><th>Alternative</th></tr></thead>
+    <tbody>
+      <tr><td>Frontend</td><td>Vercel (deploy depuis GitHub, HTTPS auto)</td><td>Netlify, GitHub Pages</td></tr>
+      <tr><td>Backend</td><td>Railway (zero-config Python)</td><td>Render, Fly.io, AWS Lambda + mangum</td></tr>
+      <tr><td>Variables d'env</td><td>Dashboard Vercel / Railway</td><td>Secrets manager (AWS, Doppler)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="doc-footer">
+  <span>LLM Copilot — Technical Architecture · June 2026</span>
+  <span>github.com/DavRengifo/llm-saas-copilot</span>
+</div>
+
+</body>
+</html>
