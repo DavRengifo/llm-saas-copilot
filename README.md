@@ -2,6 +2,8 @@
 
 > An AI-powered text analysis platform that turns raw text into structured, actionable insights — in seconds.
 
+**Live demo → [copilot.davrengifo.dev](https://copilot.davrengifo.dev)** · API key: `llm-copilot-demo-2026`
+
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
@@ -44,7 +46,7 @@ Each analysis that would take a human 15–30 minutes is completed in 2–3 seco
 | **REST API** | Full FastAPI backend with automatic OpenAPI docs (`/docs`) |
 | **Modern UI** | React + TypeScript frontend, no framework dependencies |
 | **Full test suite** | 20 backend tests (pytest) + 26 frontend tests (Vitest + RTL) |
-| **Cost controls** | Input capped at 50 000 chars, output at 1 500 tokens, 20 req/min rate limit per IP |
+| **Cost controls** | Input capped at 100 000 chars, output at 1 500 tokens, 20 req/min rate limit per IP |
 
 ---
 
@@ -345,7 +347,7 @@ Three layers of protection are implemented to prevent abuse and unexpected OpenA
 
 | Layer | Mechanism | Value |
 |---|---|---|
-| **Input limit** | Pydantic `max_length` on all text fields | 50 000 chars (~15 pages) |
+| **Input limit** | Pydantic `max_length` on all text fields | 100 000 chars (~30 pages) |
 | **Output limit** | `max_tokens` on every OpenAI call | 1 500 tokens |
 | **Rate limiting** | `slowapi` — per IP, applies to all `/analyze` routes | 20 requests/minute |
 
@@ -355,21 +357,27 @@ Three layers of protection are implemented to prevent abuse and unexpected OpenA
 
 ## Deployment
 
+### Production deployment (current)
+
+| Service | Platform | URL |
+|---|---|---|
+| Frontend | Vercel | [copilot.davrengifo.dev](https://copilot.davrengifo.dev) |
+| Backend API | Railway | [copilot-api.davrengifo.dev](https://copilot-api.davrengifo.dev) |
+
 ### Frontend → Vercel
 
 1. Push the repository to GitHub
 2. Import the project in [Vercel](https://vercel.com), set root directory to `frontend`
-3. Add `VITE_API_KEY` and `VITE_API_URL` as environment variables
+3. Add environment variables: `VITE_API_KEY`, `VITE_API_URL`
+4. (Optional) Add custom domain in Vercel → Domains
 
-### Backend → Any Python host
+### Backend → Railway
 
-The backend is a standard ASGI app. It can be deployed to:
-- **Railway / Render** — zero-config Python deployments
-- **Fly.io** — Docker-based, global edge
-- **AWS Lambda** — with `mangum` adapter
-- **Self-hosted** — `uvicorn main:app --host 0.0.0.0 --port 8000`
-
-Set `OPENAI_API_KEY` and `API_SECRET_KEY` as environment variables on your host.
+1. Import the GitHub repo in [Railway](https://railway.app)
+2. Set root directory to `backend`
+3. Set start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+4. Add environment variables: `OPENAI_API_KEY`, `API_SECRET_KEY`, `OPENAI_MODEL=gpt-4o-mini`
+5. (Optional) Add custom domain in Railway → Networking
 
 ---
 

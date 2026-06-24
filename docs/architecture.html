@@ -543,25 +543,25 @@ classDiagram
 
 <!-- ═══ 9. DEPLOYMENT ═══ -->
 <div class="section">
-  <h2>9. Architecture de déploiement cible</h2>
+  <h2>9. Architecture de déploiement — Production</h2>
 
   <div class="diagram-box">
     <div class="mermaid">
 flowchart TB
     subgraph INTERNET["Internet"]
-        USER["👤 Utilisateur"]
+        USER["👤 Utilisateur\ncopilot.davrengifo.dev"]
     end
 
-    subgraph VERCEL["Vercel (Frontend)"]
+    subgraph VERCEL["Vercel (Frontend) — copilot.davrengifo.dev"]
         CDN["CDN Global\nReact build statique\nHTTPS automatique"]
     end
 
-    subgraph HOST["Host Python (Railway / Fly.io / VPS)"]
-        API["FastAPI\nUvicorn\nenv: OPENAI_API_KEY\nenv: API_SECRET_KEY"]
+    subgraph RAILWAY["Railway (Backend) — copilot-api.davrengifo.dev"]
+        API["FastAPI · Uvicorn\nOPENAI_API_KEY\nAPI_SECRET_KEY"]
     end
 
     subgraph OPENAI["OpenAI"]
-        GPT["GPT model\nAPI payante à l'usage"]
+        GPT["gpt-4o-mini\nmax_tokens: 1500\n20 req/min per IP"]
     end
 
     USER -->|"HTTPS"| CDN
@@ -571,15 +571,16 @@ flowchart TB
     API -->|"Typed JSON"| CDN
     CDN -->|"Rendered UI"| USER
     </div>
-    <p class="diagram-caption">Figure 6 — Architecture de déploiement en production</p>
+    <p class="diagram-caption">Figure 6 — Architecture de déploiement en production (Railway + Vercel, domaine davrengifo.dev)</p>
   </div>
 
   <table>
-    <thead><tr><th>Composant</th><th>Option recommandée</th><th>Alternative</th></tr></thead>
+    <thead><tr><th>Composant</th><th>Plateforme</th><th>URL</th></tr></thead>
     <tbody>
-      <tr><td>Frontend</td><td>Vercel (deploy depuis GitHub, HTTPS auto)</td><td>Netlify, GitHub Pages</td></tr>
-      <tr><td>Backend</td><td>Railway (zero-config Python)</td><td>Render, Fly.io, AWS Lambda + mangum</td></tr>
-      <tr><td>Variables d'env</td><td>Dashboard Vercel / Railway</td><td>Secrets manager (AWS, Doppler)</td></tr>
+      <tr><td>Frontend</td><td>Vercel (Hobby, gratuit)</td><td>copilot.davrengifo.dev</td></tr>
+      <tr><td>Backend API</td><td>Railway ($5/mois, no cold start)</td><td>copilot-api.davrengifo.dev</td></tr>
+      <tr><td>Domaine</td><td>Porkbun (davrengifo.dev)</td><td>DNS via Cloudflare</td></tr>
+      <tr><td>Variables d'env</td><td>Dashboard Vercel / Railway</td><td>OPENAI_API_KEY, API_SECRET_KEY, VITE_API_KEY</td></tr>
     </tbody>
   </table>
 </div>
