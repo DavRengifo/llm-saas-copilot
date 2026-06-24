@@ -1,10 +1,12 @@
 import { useState } from 'react'
 
+const PRESET_KEY = import.meta.env.VITE_API_KEY ?? ''
+
 export function ApiKeySettings() {
-  const [key, setKey] = useState(() => localStorage.getItem('apiKey') ?? '')
+  const [key, setKey] = useState(() => localStorage.getItem('apiKey') ?? PRESET_KEY)
   const [visible, setVisible] = useState(false)
   const [saved, setSaved] = useState(false)
-  const hasKey = !!localStorage.getItem('apiKey')
+  const hasKey = !!(localStorage.getItem('apiKey') ?? PRESET_KEY)
 
   function save() {
     localStorage.setItem('apiKey', key)
