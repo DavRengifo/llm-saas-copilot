@@ -22,7 +22,11 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(err.detail ?? `HTTP ${res.status}`)
+    const detail = err.detail
+    const message = Array.isArray(detail)
+      ? detail.map((e: { msg: string }) => e.msg).join(' — ')
+      : (detail ?? `HTTP ${res.status}`)
+    throw new Error(message)
   }
 
   return res.json() as Promise<T>
